@@ -5,11 +5,6 @@
   vars:
     app_dir: /opt/image-tag-app
     container_name: image-tag-app
-    # These variables should be passed via --extra-vars or set in host_vars/group_vars
-    # computer_vision_key: "your-key-here"
-    # computer_vision_endpoint: "your-endpoint-here"
-    # cosmos_db_endpoint: "your-cosmos-endpoint-here"
-    # cosmos_db_key: "your-cosmos-key-here"
 
   tasks:
     - name: Update apt cache

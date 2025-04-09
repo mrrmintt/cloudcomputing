@@ -4,13 +4,12 @@ variable "regions" {
   default     = ["westeurope", "northeurope"]
 }
 
-# This file illustrates how you would expand main.tf to support multiple regions
-# To use this, you would need to modify main.tf to use a loop over regions variable
+
 
 /*
 Example usage:
 
-# Create resource groups per region
+
 resource "azurerm_resource_group" "rg" {
   for_each = toset(var.regions)
   
@@ -18,7 +17,7 @@ resource "azurerm_resource_group" "rg" {
   location = each.value
 }
 
-# Create virtual networks per region
+
 resource "azurerm_virtual_network" "vnet" {
   for_each = toset(var.regions)
   
@@ -28,9 +27,8 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = azurerm_resource_group.rg[each.value].name
 }
 
-# And so on for all resources...
 
-# In your outputs:
+
 output "vm_public_ips" {
   value = {
     for region in var.regions : 
