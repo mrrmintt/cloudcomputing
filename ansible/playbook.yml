@@ -1,0 +1,117 @@
+---
+- name: Deploy Image Tag Analyzer Application
+  hosts: app_servers
+  become: yes
+  vars:
+    app_dir: /opt/image-tag-app
+    container_name: image-tag-app
+    # These variables should be passed via --extra-vars or set in host_vars/group_vars
+    # computer_vision_key: "your-key-here"
+    # computer_vision_endpoint: "your-endpoint-here"
+    # cosmos_db_endpoint: "your-cosmos-endpoint-here"
+    # cosmos_db_key: "your-cosmos-key-here"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - python3-pip
+        state: present
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Docker Python library
+      pip:
+        name: docker
+        state: present
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Pull application Docker image from registry
+      docker_image:
+        name: "{{ docker_image_name | default('yourregistry/image-tag-app:latest') }}"
+        source: pull
+      when: docker_image_name is defined
+      
+    - name: Clone application repository
+      git:
+        repo: "{{ git_repo | default('https://github.com/yourusername/image-tag-app.git') }}"
+        dest: "{{ app_dir }}"
+        version: "{{ git_branch | default('main') }}"
+      when: docker_image_name is not defined and git_repo is defined
+
+    - name: Build Docker image from local files
+      docker_image:
+        name: image-tag-app
+        build:
+          path: "{{ app_dir }}"
+        source: build
+      when: docker_image_name is not defined and git_repo is defined
+
+    - name: Stop any existing container
+      docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run Docker container
+      docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image_name | default('image-tag-app:latest') }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:8080"
+        env:
+          COMPUTER_VISION_KEY: "{{ computer_vision_key }}"
+          COMPUTER_VISION_ENDPOINT: "{{ computer_vision_endpoint }}"
+          COSMOS_DB_ENDPOINT: "{{ cosmos_db_endpoint }}"
+          COSMOS_DB_KEY: "{{ cosmos_db_key }}"
+          COSMOS_DB_NAME: "{{ cosmos_db_name | default('image-tags') }}"
+          COSMOS_CONTAINER_NAME: "{{ cosmos_container_name | default('results') }}"
+
+    - name: Configure Nginx as reverse proxy
+      block:
+        - name: Install Nginx
+          apt:
+            name: nginx
+            state: present
+
+        - name: Configure Nginx site
+          template:
+            src: nginx-site.conf.j2
+            dest: /etc/nginx/sites-available/image-tag-app
+          vars:
+            server_name: "{{ inventory_hostname }}"
+            app_port: 8080
+
+        - name: Enable Nginx site
+          file:
+            src: /etc/nginx/sites-available/image-tag-app
+            dest: /etc/nginx/sites-enabled/image-tag-app
+            state: link
+
+        - name: Remove default Nginx site
+          file:
+            path: /etc/nginx/sites-enabled/default
+            state: absent
+          ignore_errors: yes
+
+        - name: Restart Nginx
+          systemd:
+            name: nginx
+            state: restarted
+      when: use_nginx | default(false) | bool

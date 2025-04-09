@@ -1,0 +1,5 @@
+flask==2.0.1
+azure-cognitiveservices-vision-computervision==0.9.0
+azure-cosmos==4.3.0
+msrest==0.7.1
+python-dotenv==0.19.1
