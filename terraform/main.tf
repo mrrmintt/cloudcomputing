@@ -60,8 +60,8 @@ resource "azurerm_mssql_server" "sql_server" {
   resource_group_name          = azurerm_resource_group.rg.name
   location                     = azurerm_resource_group.rg.location
   version                      = "12.0"
-  administrator_login          = "sqladmin"
-  administrator_login_password = "YourStrongPassword123!" # In der Praxis: Verwende Variablen oder Key Vault
+  administrator_login_password = var.administrator_login_password
+  public_network_access_enabled = var.public_network_access_enabled
 
   public_network_access_enabled = true
 }
