@@ -2,7 +2,7 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install ODBC Driver for SQL Server
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     curl \
@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Expose port for web server
+
 EXPOSE 8080
 
-# Run the application
+
 CMD ["python", "app.py"]
