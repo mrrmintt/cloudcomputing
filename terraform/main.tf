@@ -55,6 +55,52 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 
+resource "azurerm_mssql_server" "sql_server" {
+  name                         = "${var.prefix}-sqlserver"
+  resource_group_name          = azurerm_resource_group.rg.name
+  location                     = azurerm_resource_group.rg.location
+  version                      = "12.0"
+  administrator_login          = "sqladmin"
+  administrator_login_password = "YourStrongPassword123!" # In der Praxis: Verwende Variablen oder Key Vault
+
+  public_network_access_enabled = true
+}
+
+
+resource "azurerm_mssql_database" "sql_db" {
+  name           = "${var.prefix}-db"
+  server_id      = azurerm_mssql_server.sql_server.id
+  collation      = "SQL_Latin1_General_CP1_CI_AS"
+  license_type   = "LicenseIncluded"
+  max_size_gb    = 2
+  sku_name       = "Basic"
+  zone_redundant = false
+}
+
+
+resource "azurerm_mssql_firewall_rule" "allow_vm" {
+  name             = "AllowVMAccess"
+  server_id        = azurerm_mssql_server.sql_server.id
+  start_ip_address = azurerm_public_ip.publicip.ip_address
+  end_ip_address   = azurerm_public_ip.publicip.ip_address
+}
+
+
+resource "azurerm_mssql_firewall_rule" "allow_azure_services" {
+  name             = "AllowAzureServices"
+  server_id        = azurerm_mssql_server.sql_server.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
+
+output "sql_server_fqdn" {
+  value = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+}
+
+output "sql_database_name" {
+  value = azurerm_mssql_database.sql_db.name
+}
 resource "azurerm_linux_virtual_machine" "vm" {
   name                = "imgtag-vm"
   resource_group_name = azurerm_resource_group.rg.name
